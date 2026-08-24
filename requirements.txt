@@ -1,0 +1,4 @@
+edge-tts==6.1.19
+openai-whisper==20231117
+moviepy==1.0.3
+requests==2.32.3
