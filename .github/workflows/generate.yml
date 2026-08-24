@@ -1,1 +1,53 @@
+name: Generar video de fútbol
 
+on:
+  repository_dispatch:
+    types: [generate-video]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Clonar repo
+        uses: actions/checkout@v4
+
+      - name: Instalar Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Instalar ffmpeg
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
+
+      - name: Instalar dependencias
+        run: pip install -r requirements.txt
+
+      - name: Guardar el guion recibido de Make
+        env:
+          SCRIPT_PAYLOAD: ${{ toJson(github.event.client_payload) }}
+        run: echo "$SCRIPT_PAYLOAD" > script.json
+
+      - name: Generar el video
+        env:
+          PEXELS_API_KEY: ${{ secrets.PEXELS_API_KEY }}
+        run: python generate_video.py script.json output.mp4
+
+      - name: Publicar el video como Release (URL pública y gratis)
+        id: release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: video-${{ github.run_id }}
+          files: output.mp4
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Avisarle a Make que el video ya está listo
+        env:
+          MAKE_WEBHOOK_URL: ${{ secrets.MAKE_WEBHOOK_URL }}
+        run: |
+          VIDEO_URL="https://github.com/${{ github.repository }}/releases/download/video-${{ github.run_id }}/output.mp4"
+          curl -X POST "$MAKE_WEBHOOK_URL" \
+            -H "Content-Type: application/json" \
+            -d "{\"video_url\": \"$VIDEO_URL\", \"status\": \"ready\"}" \
+            || echo "Aviso: el webhook de Make todavía no está configurado, se continúa igual."
