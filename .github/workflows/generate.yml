@@ -23,7 +23,10 @@ jobs:
       - name: Preparar herramientas de compilación
         run: pip install --upgrade pip "setuptools<81" wheel
 
-      - name: Instalar dependencias
+      - name: Instalar Whisper (sin aislar el ambiente de compilación)
+        run: pip install --no-build-isolation openai-whisper==20231117
+
+      - name: Instalar el resto de dependencias
         run: pip install -r requirements.txt
 
       - name: Guardar el guion recibido de Make
